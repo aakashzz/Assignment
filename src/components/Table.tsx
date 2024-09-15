@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import axios from "axios";
+import { OverlayPanel } from "primereact/overlaypanel";
 
 interface Data {
    title: string;
@@ -18,6 +19,7 @@ function Table() {
    const [loading, setLoading] = useState<boolean>(false);
    const [selectItem, setSelectItem] = useState<Data[]>([]);
    const [totalRecords, setTotalRecords] = useState(0);
+   const toggle = useRef<any>();
 
    useEffect(() => {
       fetchingValues(page);
@@ -43,25 +45,37 @@ function Table() {
    }
 
    function onSelectionChange(e: any) {
+      console.log(e)
       setSelectItem(e.value);
+      
    }
+
+   function onCustomRowSelection(e:any){   
+      toggle.current.toggle(e)
+   }
+   function onRowSelect(e:any){
+      console.log(e)
+   }  
 
    return (
       <main className="h-full w-full px-4 py-4 ">
          <DataTable
             value={values}
             paginator
-            rows={12}
+            rows={1000}
             dataKey="id"
             lazy
             loading={loading}
             onPage={onPageChange}
+            paginatorClassName="hover:bg-blue-200"
             totalRecords={totalRecords}
             tableStyle={{ minWidth: "50rem" }}
             className="table-auto border-collapse border border-gray-300"
-            selection={selectItem!}
+            selection={selectItem}
             selectionMode="checkbox"
             onSelectionChange={onSelectionChange}
+            // onRowSelect={onRowSelect}
+            
          >
             <Column
                selectionMode="multiple"
@@ -69,10 +83,18 @@ function Table() {
             ></Column>
             <Column
                header={
-                  <i
-                     className="pi pi-angle-down "
+                  <>
+                  <i onClick={onCustomRowSelection}
+                     className="pi pi-angle-down cursor-pointer "
                      style={{ fontSize: "1rem", color: "black" }}
                   ></i>
+                  <OverlayPanel ref={toggle}>
+                     <input type="number" placeholder="Select rows.." className="outline-none border rounded-lg pl-2 text-sm p-1 block"/>
+                     <div className="text-center py-2">
+                        <button className="w-full  bg-red-800 text-white font-medium rounded-md py-0.5 ">Submit</button>
+                     </div>
+                  </OverlayPanel>
+                  </>
                }
                headerStyle={{ width: "3rem" }}
             ></Column>
