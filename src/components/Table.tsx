@@ -3,6 +3,11 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import axios from "axios";
 import { OverlayPanel } from "primereact/overlaypanel";
+import 'primereact/resources/themes/bootstrap4-dark-blue/theme.css';import 'primereact/resources/themes/bootstrap4-dark-blue/theme.css';
+
+
+
+// import 'primereact/resources/primereact.min.css';           
 
 interface Data {
    title: string;
@@ -20,6 +25,8 @@ function Table() {
    const [selectItem, setSelectItem] = useState<Data[]>([]);
    const [totalRecords, setTotalRecords] = useState(0);
    const toggle = useRef<any>();
+   const datatableRef = useRef<any>();
+   const [numberOfRows, setNumberOfRows] = useState<number>(0);
 
    useEffect(() => {
       fetchingValues(page);
@@ -45,7 +52,6 @@ function Table() {
    }
 
    function onSelectionChange(e: any) {
-      console.log(e)
       setSelectItem(e.value);
       
    }
@@ -53,13 +59,41 @@ function Table() {
    function onCustomRowSelection(e:any){   
       toggle.current.toggle(e)
    }
-   function onRowSelect(e:any){
-      console.log(e)
-   }  
+   function handleInputChange(e: any) {
+      setNumberOfRows(e.target.value);
+   }
+   async function onUnSelection() {
+      let rowsToSelect: Data[] = [];
+      let currentPage = page;
+      let remainingRows = numberOfRows;
+
+      while (remainingRows > 0) {
+         if (currentPage === page) {
+            rowsToSelect = [...rowsToSelect, ...values.slice(0, remainingRows)];
+            remainingRows -= values.length;
+         } else {
+            const fetchItems = await axios.get(
+               `https://api.artic.edu/api/v1/artworks?page=${currentPage}`
+            );
+            const nextPageValues = fetchItems.data.data;
+            rowsToSelect = [
+               ...rowsToSelect,
+               ...nextPageValues.slice(0, remainingRows),
+            ];
+            remainingRows -= nextPageValues.length;
+         }
+         if (remainingRows > 0) {
+            currentPage++;
+         }
+      }
+      setSelectItem(rowsToSelect);
+      toggle.current.hide();
+   }
 
    return (
       <main className="h-full w-full px-4 py-4 ">
          <DataTable
+            ref={datatableRef}
             value={values}
             paginator
             rows={1000}
@@ -67,15 +101,15 @@ function Table() {
             lazy
             loading={loading}
             onPage={onPageChange}
-            paginatorClassName="hover:bg-blue-200"
+            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink   "
             totalRecords={totalRecords}
             tableStyle={{ minWidth: "50rem" }}
-            className="table-auto border-collapse border border-gray-300"
+            className="datatable-responsive"
             selection={selectItem}
             selectionMode="checkbox"
             onSelectionChange={onSelectionChange}
-            // onRowSelect={onRowSelect}
-            
+            onRowSelect={onSelectionChange}
+            aria-rowcount={20}            
          >
             <Column
                selectionMode="multiple"
@@ -89,9 +123,9 @@ function Table() {
                      style={{ fontSize: "1rem", color: "black" }}
                   ></i>
                   <OverlayPanel ref={toggle}>
-                     <input type="number" placeholder="Select rows.." className="outline-none border rounded-lg pl-2 text-sm p-1 block"/>
+                     <input type="number" value={numberOfRows} onChange={handleInputChange} placeholder="Select rows.." className="outline-none border rounded-lg pl-2 text-sm p-1 block"/>
                      <div className="text-center py-2">
-                        <button className="w-full  bg-red-800 text-white font-medium rounded-md py-0.5 ">Submit</button>
+                        <button onClick={onUnSelection} className="w-full  bg-red-800 text-white font-medium rounded-md py-0.5 ">Submit</button>
                      </div>
                   </OverlayPanel>
                   </>
